@@ -209,6 +209,7 @@ dependencies = [
  "aws-sdk-s3",
  "dotenv",
  "env_logger",
+ "http 0.2.12",
  "serde",
  "tokio",
 ]

@@ -1,6 +1,7 @@
 use actix_web::{HttpRequest, HttpResponse, web};
 use crate::services::s3::S3Service;
-use std::path::Path;
+use http::header::LOCATION;
+use http::Uri;
 
 pub async fn upload_file(
     req: HttpRequest,
@@ -10,27 +11,7 @@ pub async fn upload_file(
     let key = req.match_info().get("key").unwrap();
     let content = payload.to_vec();
 
-    // 拡張子を取得
-    let extension = Path::new(key)
-        .extension()
-        .and_then(|ext| ext.to_str())
-        .unwrap_or("")
-        .to_string();
-
-    // 拡張子の長さが10バイトを超える場合はエラーを返す
-    if extension.len() > 10 {
-        return HttpResponse::BadRequest().body("File extension is too long");
-    }
-
-    // 拡張子を10バイトに固定する
-    let mut extension_bytes = [0u8; 10];
-    extension_bytes[..extension.len()].copy_from_slice(extension.as_bytes());
-
-    // ファイルの末尾に拡張子を追加
-    let mut content_with_extension = content.clone();
-    content_with_extension.extend_from_slice(&extension_bytes);
-
-    match s3_service.upload_file(key, content_with_extension).await {
+    match s3_service.upload_file(key, content).await {
         Ok(_) => HttpResponse::Ok().body(format!("/{}", key)),
         Err(e) => {
             eprintln!("Error uploading file: {:?}", e);
@@ -56,9 +37,12 @@ pub async fn get_file(req: HttpRequest, s3_service: web::Data<S3Service>) -> Htt
     let key = req.match_info().get("key").unwrap();
 
     match s3_service.get_presigned_url(key).await {
-        Ok(url) => HttpResponse::Found()
-            .append_header(("Location", url))
-            .finish(),
+        Ok(url) => {
+            let uri: Uri = url.parse().unwrap();
+            HttpResponse::Found()
+                .insert_header((LOCATION, uri.to_string()))
+                .finish()
+        },
         Err(e) => {
             eprintln!("Error generating pre-signed URL: {:?}", e);
             HttpResponse::InternalServerError().body("Failed to generate pre-signed URL")

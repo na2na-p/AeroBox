@@ -1,4 +1,4 @@
-use aws_sdk_s3::{Client, Error, types::Object, primitives::ByteStream, presigning::PresigningConfig};
+use aws_sdk_s3::{Client, types::Object, primitives::ByteStream, presigning::PresigningConfig};
 use std::sync::Arc;
 use std::time::Duration;
 use anyhow::Result;
@@ -22,7 +22,7 @@ impl S3Service {
         }
     }
 
-    pub async fn upload_file(&self, key: &str, content: Vec<u8>) -> Result<(), Error> {
+    pub async fn upload_file(&self, key: &str, content: Vec<u8>) -> Result<()> {
         let byte_stream = ByteStream::from(content);
 
         self.client.put_object()
@@ -35,7 +35,7 @@ impl S3Service {
         Ok(())
     }
 
-    pub async fn list_objects(&self) -> Result<Vec<Object>, Error> {
+    pub async fn list_objects(&self) -> Result<Vec<Object>> {
         let resp = self.client.list_objects_v2()
             .bucket(&self.bucket)
             .send()
