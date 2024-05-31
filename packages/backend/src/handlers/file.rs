@@ -52,9 +52,18 @@ pub async fn list_files(s3_service: web::Data<S3Service>) -> HttpResponse {
     }
 }
 
-pub async fn get_file(req: HttpRequest) -> HttpResponse {
+pub async fn get_file(req: HttpRequest, s3_service: web::Data<S3Service>) -> HttpResponse {
     let key = req.match_info().get("key").unwrap();
-    HttpResponse::Ok().body(format!("PreSigned URL for key: {}", key))
+
+    match s3_service.get_presigned_url(key).await {
+        Ok(url) => HttpResponse::Found()
+            .append_header(("Location", url))
+            .finish(),
+        Err(e) => {
+            eprintln!("Error generating pre-signed URL: {:?}", e);
+            HttpResponse::InternalServerError().body("Failed to generate pre-signed URL")
+        }
+    }
 }
 
 pub async fn delete_file(req: HttpRequest) -> HttpResponse {

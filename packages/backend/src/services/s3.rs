@@ -1,11 +1,15 @@
-use aws_sdk_s3::{Client, Error, types::Object, primitives::ByteStream};
+use aws_sdk_s3::{Client, Error, types::Object, primitives::ByteStream, presigning::PresigningConfig};
 use std::sync::Arc;
+use std::time::Duration;
+use anyhow::Result;
 
 #[derive(Clone)]
 pub struct S3Service {
     client: Arc<Client>,
     bucket: String,
 }
+
+const DEFAULT_EXPIRATION: Duration = Duration::from_secs(3600);
 
 impl S3Service {
     pub async fn new(
@@ -39,6 +43,18 @@ impl S3Service {
 
         let objects = resp.contents.unwrap_or_default();
         Ok(objects)
+    }
+
+    pub async fn get_presigned_url(&self, key: &str) -> Result<String> {
+        let presigning_config = PresigningConfig::expires_in(DEFAULT_EXPIRATION)?;
+
+        let presigned_request = self.client.get_object()
+            .bucket(&self.bucket)
+            .key(key)
+            .presigned(presigning_config)
+            .await?;
+
+        Ok(presigned_request.uri().to_string())
     }
 }
 
