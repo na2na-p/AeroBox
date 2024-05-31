@@ -12,3 +12,13 @@
 - システムは、ファイル保存が成功したらユーザにアクセス用のURLを返す
 - 保存されたファイルへのアクセスには`GET ${hostName}/${S3オブジェクトのキー}`を用いる
 - ファイルを削除するには`DELETE ${hostName}/${S3のオブジェクトキー}`を用いる
+
+## Backend
+
+### curl
+
+#### Post
+
+```
+curl -X POST http://127.0.0.1:8080/keyname --data-binary "@./image.png" -i
+```
